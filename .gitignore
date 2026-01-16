@@ -1,0 +1,5 @@
+upython/micropython
+upython/pimoroni-pico
+upython/.*
+
+.vscode
