@@ -1,0 +1,587 @@
+esphome:
+  name: piro-atlas-lab-db-el-tester
+  friendly_name: piro-atlas-lab-db-el-tester
+
+  on_boot:
+    priority: -100
+    then:
+      - display.page.show: init_page
+      - component.update: pico_display
+      # - delay: 3s   # show the initialization screen for 3 seconds
+      - display.page.show: main_page
+      - component.update: pico_display
+
+      # - if:
+      #     condition:
+      #       binary_sensor.is_on: btn_y
+      #     then:
+      #       - display.page.show: halted_page
+      #       - component.update: pico_display
+      #       - logger.log: "Startup blocked: BTN_Y pressed"
+      #       - while:
+      #           condition:
+      #             binary_sensor.is_on: btn_y
+      #           then:
+      #             - delay: 1s
+
+rp2040:
+  board: rpipicow
+
+# logger:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  # ssid: !secret wifi_ssid
+  # password: !secret wifi_password
+  ssid: "ATLAS.NET"
+  password: "the.atlas.net"
+
+  ap:
+    ssid: "piro-atlas-lab-db-el-tester"
+    password: !secret ota_password
+
+spi:
+  - id: spi_display
+    clk_pin: 18
+    mosi_pin: 19
+
+  - id: spi_adc
+    clk_pin: 14
+    mosi_pin: 15
+    miso_pin: 12
+
+mcp3204:
+  - id: adc
+    spi_id: spi_adc
+    cs_pin: GPIO13
+    reference_voltage: 3.3V
+
+cd74hc4067:
+  - id: mux
+    pin_s0: 26
+    pin_s1: 22
+    pin_s2: 27
+    pin_s3: 28
+
+globals:
+  - id: values
+    type: float[26]
+
+  # Channel names
+  - id: channel_label
+    type: char[26][12]  # 26 channels, max 12 chars each
+    initial_value: '{
+      "dba_1v2","dba_5v0","dba_1v5","dba_3v3","dba_pg2","dba_pg3","dba_pg4","dba_pg1","dba_5v0p","dba_2v5","dba_1v8","dba_1v0","dba_0v95",
+      "dbb_1v2","dbb_5v0","dbb_1v5","dbb_3v3","dbb_pg2","dbb_pg3","dbb_pg4","dbb_pg1","dbb_5v0p","dbb_2v5","dbb_1v8","dbb_1v0","dbb_0v95"
+    }'
+
+  # Calibration factors
+  - id: cal_factor
+    type: float[26]
+    initial_value: '{0.8291,0.5,0.8291,0.5,0.5,0.5,0.5,0.5,0.5,0.8291,0.8291,0.8291,0.8291,
+                     0.8291,0.5,0.8291,0.5,0.5,0.5,0.5,0.5,0.5,0.8291,0.8291,0.8291,0.8291}'
+
+  - id: min_vals
+    type: float[26]
+    initial_value: '{1.1,4.9,1.4,3.2,1.0,1.0,1.0,1.0,4.9,2.4,1.9,0.9,0.8,
+                    1.1,4.9,1.4,3.2,1.0,1.0,1.0,1.0,4.9,2.4,1.9,0.9,0.8}'
+  
+  - id: max_vals
+    type: float[26]
+    initial_value: '{1.3,5.1,1.6,3.4,5.1,5.1,5.1,5.1,5.1,2.6,1.7,1.1,1.0,
+                    1.3,5.1,1.6,3.4,5.1,5.1,5.1,5.1,5.1,2.6,1.7,1.1,1.0}'
+  
+  - id: min_vals_test
+    type: float[26]
+    initial_value: '{-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,
+                    -0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5}'
+  
+  - id: max_vals_test
+    type: float[26]
+    initial_value: '{5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,
+                    5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5}'
+
+
+  - id: alarm_flag
+    type: bool
+    initial_value: "true"
+  - id: blink
+    type: bool
+    initial_value: "true"
+  - id: blink_flag
+    type: bool
+    initial_value: "true"
+
+  - id: secret_ssid_storage
+    type: std::string
+    initial_value: '"${my_ssid_val}"'
+
+  - id: sensor_update_interval
+    type: int
+    initial_value: "1000"  # milliseconds
+
+  # - id: values_ready_count
+  #   type: int
+  #   initial_value: '0'  # Will track how many sensors have been read
+
+
+
+substitutions:
+  my_ssid_val: !secret wifi_ssid
+
+
+output:
+  - platform: rp2040_pwm
+    pin: 6
+    inverted: true
+    id: pwm_r
+  - platform: rp2040_pwm
+    pin: 7
+    inverted: true
+    id: pwm_g
+  - platform: rp2040_pwm
+    pin: 8
+    inverted: true
+    id: pwm_b
+
+light:
+  - platform: rgb
+    id: status_led
+    red: pwm_r
+    green: pwm_g
+    blue: pwm_b
+
+binary_sensor:
+  - platform: gpio
+    pin: { number: 5, inverted: true, mode: INPUT_PULLUP }
+    id: btn_a
+  - platform: gpio
+    pin: { number: 4, inverted: true, mode: INPUT_PULLUP }
+    id: btn_b
+  - platform: gpio
+    pin: { number: 3, inverted: true, mode: INPUT_PULLUP }
+    id: btn_x
+  - platform: gpio
+    pin: { number: 2, inverted: true, mode: INPUT_PULLUP }
+    id: btn_y
+
+  - platform: template
+    name: "Alarm Flag"
+    lambda: |-
+      return id(alarm_flag);
+    icon: "mdi:alert-circle"
+
+
+
+sensor:
+  - platform: wifi_signal
+    name: "Wi-Fi Signal"
+    id: wifi_sensor
+    update_interval: 1s
+
+  - platform: template
+    name: "DBA 1V2"
+    lambda: "return id(values)[0];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA 5V0"
+    lambda: "return id(values)[1];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA 1V5"
+    lambda: "return id(values)[2];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA 3V3"
+    lambda: "return id(values)[3];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA PG2"
+    lambda: "return id(values)[4];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA PG3"
+    lambda: "return id(values)[5];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA PG4"
+    lambda: "return id(values)[6];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA PG1"
+    lambda: "return id(values)[7];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA 5V0P"
+    lambda: "return id(values)[8];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA 2V5"
+    lambda: "return id(values)[9];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA 1V8"
+    lambda: "return id(values)[10];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA 1V0"
+    lambda: "return id(values)[11];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBA 0V95"
+    lambda: "return id(values)[12];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB 1V2"
+    lambda: "return id(values)[13];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB 5V0"
+    lambda: "return id(values)[14];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB 1V5"
+    lambda: "return id(values)[15];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB 3V3"
+    lambda: "return id(values)[16];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB PG2"
+    lambda: "return id(values)[17];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB PG3"
+    lambda: "return id(values)[18];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB PG4"
+    lambda: "return id(values)[19];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB PG1"
+    lambda: "return id(values)[20];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB 5V0P"
+    lambda: "return id(values)[21];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB 2V5"
+    lambda: "return id(values)[22];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB 1V8"
+    lambda: "return id(values)[23];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB 1V0"
+    lambda: "return id(values)[24];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+  - platform: template
+    name: "DBB 0V95"
+    lambda: "return id(values)[25];"
+    # unit_of_measurement: "V"
+    accuracy_decimals: 3
+    update_interval: 1s
+    filters:
+      - round: 3
+
+
+
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "Wi-Fi IP Address"
+      id: wifi_ip
+    ssid:
+      name: "Wi-Fi SSID"
+      id: wifi_ssid
+  - platform: template
+    name: "Expected SSID"
+    id: expected_ssid
+    lambda: |-
+      return id(secret_ssid_storage);
+
+
+
+interval:
+  - interval: 500ms
+    then:
+      - lambda: |-
+          bool test_mode = id(btn_y).state && id(btn_b).state;
+          id(alarm_flag) = false;
+          // int ready = 0;
+
+          for (int i = 0; i < 26; i++) {
+            int mux_ch = i % 13;               // 0..12
+            int adc_ch = (i < 13) ? 0 : 2;    // first 13 → ADC0, second 13 → ADC2
+
+            id(mux).activate_pin(mux_ch);
+            delay(10);  // allow settling
+
+            float adc_v_raw = id(adc).read_data(adc_ch);
+            float adc_v = adc_v_raw * id(cal_factor)[i];
+            id(values)[i] = adc_v;
+
+
+            float vmin = test_mode ? id(min_vals_test)[i] : id(min_vals)[i];
+            float vmax = test_mode ? id(max_vals_test)[i] : id(max_vals)[i];
+
+            if (adc_v < vmin || adc_v > vmax) {
+              id(alarm_flag) = true;
+              //id(blink) = true;
+              }
+          // ready++;
+          }
+          // id(values_ready_count) = ready;  // update the percent display
+
+      - lambda: |-
+          auto call = id(status_led).make_call(); // 1. Create the call object
+          call.set_transition_length(500);
+          if (id(alarm_flag)) {
+            if (id(blink_flag)) {
+              call.set_state(true);
+              id(blink_flag) = false;
+              call.set_rgb(0.3,0,0);
+            } else {
+              call.set_state(false);
+              //call.set_rgb(0,0,0);
+              id(blink_flag) = true;
+            }
+          } else {
+            call.set_state(true);
+            call.set_rgb(0,0.3,0);
+          }
+          call.perform();
+
+
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_tiny
+    size: 10
+    bpp: 8  
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 12
+    bpp: 8  
+  - file: "gfonts://Roboto"
+    id: font_big
+    size: 14
+    bpp: 8  
+
+display:
+  - platform: st7789v
+    spi_id: spi_display
+    id: pico_display
+    model: "Custom"
+    cs_pin: 17
+    dc_pin: 16
+    reset_pin: 21
+    backlight_pin: 20
+    width: 240
+    height: 320
+    rotation: 90
+    offset_height: 0
+    offset_width: 0
+    eightbitcolor: true
+    update_interval: 1000ms
+
+    pages:
+
+      - id: init_page
+        lambda: |-
+          // Full black background
+          it.fill(Color(0,0,0));
+
+          // Centered text
+          const char* text = "DB EL Tester Initializing...";
+          // Approximate centering (manually tuned for your fonts)
+          it.print(40, 120, id(font_big), Color(255,255,255), text);
+
+      - id: main_page
+        lambda: |-
+          it.fill(Color(0,0,0));
+
+          // column divider
+          it.line(160, 0, 160, 224, Color(255,255,255));
+
+          // headers
+          it.print(10, 2, id(font_big), Color(255,255,255), "DB Side A");
+          it.print(170, 2, id(font_big), Color(255,255,255), "DB Side B");
+
+          for (int i = 0; i < 13; i++) {
+            int y = 22 + i * 16;
+
+            // cell boxes
+            it.rectangle(0, y-2, 160, 16, Color(255,255,255));
+            it.rectangle(160, y-2, 160, 16, Color(255,255,255));
+
+            Color vcol = id(alarm_flag) ? Color(255,0,0) : Color(0,255,0);
+
+          // Left side
+          it.printf(4, y, id(font_small), Color(255,255,0), "%s", id(channel_label)[i]);
+          it.printf(60, y, id(font_small), vcol, "%.3f", id(values)[i]);
+
+          // Right side
+          it.printf(164, y, id(font_small), Color(255,255,0), "%s", id(channel_label)[i+13]);
+          it.printf(220, y, id(font_small), vcol, "%.3f", id(values)[i+13]);
+          }
+
+          // Wi-Fi status at bottom
+          if (id(wifi_ip).state != "") {
+              // Connected: show SSID and IP
+              char buf[50];
+              snprintf(buf, sizeof(buf), "%s: %s", id(wifi_ssid).state.c_str(), id(wifi_ip).state.c_str());
+              it.print(5, 228, id(font_tiny), Color(0,255,0), buf);
+          } else {
+              // Disconnected: show "Looking for 'SSID'"
+              char buf[50];
+              snprintf(buf, sizeof(buf), "Looking for %s", id(expected_ssid).state.c_str());
+              it.print(5, 228, id(font_tiny), Color(255,0,0), buf);
+          }          
+
+      - id: halted_page
+        lambda: |-
+          it.fill(Color(0,0,0));
+          it.print(
+            20, 80,
+            id(font_big),
+            Color(255,255,255),
+            "Firmware stopped\nand Pico reset!"
+          );
