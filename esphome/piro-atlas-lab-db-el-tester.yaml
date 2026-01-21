@@ -38,10 +38,10 @@ ota:
     password: !secret ota_password
 
 wifi:
-  # ssid: !secret wifi_ssid
-  # password: !secret wifi_password
-  ssid: "ATLAS.NET"
-  password: "the.atlas.net"
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # ssid: "ATLAS.NET"
+  # password: "the.atlas.net"
 
   ap:
     ssid: "piro-atlas-lab-db-el-tester"
