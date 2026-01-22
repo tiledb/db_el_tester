@@ -41,7 +41,7 @@ def nprint(msg):
         except OSError:
             pass
 
-first_row, mux_row, adc_row, channel_label_row, info_row = "", "", "", "", ""
+first_row, mux_row, adc_row, channel_label_row, channel_label_row_dim, info_row = "", "", "", "", "", ""
 iteration = 0
 max_iterations = 10
 
@@ -55,7 +55,7 @@ adc_settle_ms = 5   # small delay between samples (adjust if needed)
 
 def print_header():
     nprint(shared.delimiter_line)
-    global first_row, mux_row, adc_row, channel_label_row, info_row
+    global first_row, mux_row, adc_row, channel_label_row, channel_label_row_dim, info_row
 
 
     for i in range(shared.nr_of_channels):
@@ -63,6 +63,7 @@ def print_header():
         mux_row += f"mux_ch_{shared.mux_ch[i]}\t"
         adc_row += f"adc_ch_{shared.output_adc_ch[i]}\t"
         channel_label_row += f"{shared.channel_label[i]}\t"
+        channel_label_row_dim += f"{shared.channel_label[i].split('_')[1]}\t"
         info_row += f"{shared.channel_label[i]}_adc[{shared.output_adc_ch[i]}]_mux[{shared.mux_ch[i]}]\t"
         
     # first_row += "\t|||\t\t"
@@ -97,7 +98,7 @@ def run():
             local_adc_avg[i] = avg
             local_v[i] = (
                 avg *
-                shared.adc_cal *
+                shared.adc_cal /
                 shared.output_adc_value_v_calibration_factor[i]
             )
 
@@ -109,12 +110,13 @@ def run():
             shared.output_adc_value_v[i] = local_v[i]
         shared.data_lock.release()
 
+        nprint(channel_label_row_dim)
         # ---- Printing (NO LOCK) ----
-        if iteration < max_iterations:
-            iteration += 1
-        else:
-            iteration = 0
-            nprint(channel_label_row)
+        # if iteration < max_iterations:
+        #     iteration += 1
+        # else:
+        #     iteration = 0
+        #     nprint(channel_label_row)
 
         row_adc = ""
         row_v = ""
@@ -123,7 +125,7 @@ def run():
             row_v += f"{local_v[i]:.3f}V\t"
 
         nprint(row_adc)
-        cprint(row_v)
+        nprint(row_v)
 
         time.sleep(0.5)
 
