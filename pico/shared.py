@@ -1,8 +1,8 @@
 import _thread
 
 
-cprint_enabled = True
-nprint_enabled = True
+cprint_enabled = False
+nprint_enabled = False
 delimiter_line = "=========="
 
 
