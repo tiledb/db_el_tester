@@ -42,21 +42,19 @@ elif not display_task.btn_b.value() and not display_task.btn_a.value():  # activ
     start = time.ticks_ms()
     timeout = 5000  # 5 seconds max to connect
 
-    while time.ticks_diff(time.ticks_ms(), start) < timeout:
-        if data_task.net.ensure_connected():
-            network_ok = True
-            break
-        time.sleep(0.05)
+    while not data_task.net.ensure_connected():
+        retry_count += 1
+        display_task.draw_line(y0, line_h, f"Waiting for network... Retry: {retry_count}")
+        print(f"[INFO] Waiting for network, retry #{retry_count}")
+        time.sleep(1)
 
-    if network_ok:
-        ip = data_task.net.wlan.ifconfig()[0]
-        display_task.draw_line(y0, line_h, f"Wi-Fi connected, IP: {ip}")
-        if data_task.net.mqtt:
-            display_task.draw_line(y0 + line_h, line_h, f"MQTT broker connected: {data_task.net.mqtt_broker}")
-        else:
-            display_task.draw_line(y0 + line_h, line_h, "MQTT broker NOT connected")
+
+    ip = data_task.net.wlan.ifconfig()[0]
+    display_task.draw_line(y0, line_h, f"Wi-Fi connected, IP: {ip}")
+    if data_task.net.mqtt:
+        display_task.draw_line(y0 + line_h, line_h, f"MQTT broker connected: {data_task.net.mqtt_broker}")
     else:
-        display_task.draw_line(y0, line_h, "Network NOT connected (Wi-Fi/MQTT)")
+        display_task.draw_line(y0 + line_h, line_h, "MQTT broker NOT connected")
 
     # ---- Step 3: Clear discovery ----
     clear_y = y0 + line_h * 3

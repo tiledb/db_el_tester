@@ -249,7 +249,7 @@ def run():
         if net.ensure_connected():
             if not discovery_sent:
                 send_discovery(net, shared.channel_label)
-                time.sleep(10)
+                # time.sleep(10)
                 discovery_sent = True
 
         if time.ticks_diff(time.ticks_ms(), last_mqtt) > 1000:
@@ -268,16 +268,13 @@ def run():
             labels = shared.channel_label[:]
             shared.data_lock.release()
 
-            state = {}
-
             for i, label in enumerate(labels):
-                state[label] = values[i]
-                state[f"{label}_alarm"] = "ON" if not (vmin[i] <= values[i] <= vmax[i]) else "OFF"
+                value = values[i]
+                topic = f"{label}"
+                alarm_topic = f"{label}/alarm"
 
-            net.publish(
-                b"state",
-                ujson.dumps(state).encode()
-            )
+                net.publish(topic.encode(), b"%.3f" % value)
+                net.publish(alarm_topic.encode(), b"ON" if value < vmin[i] or value > vmax[i] else b"OFF")
 
         time.sleep(0.5)
 
