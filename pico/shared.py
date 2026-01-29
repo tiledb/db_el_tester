@@ -1,5 +1,6 @@
 import _thread
 
+test_mode = False
 
 cprint_enabled = False
 nprint_enabled = False

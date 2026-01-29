@@ -3,14 +3,15 @@ import data_task
 import display_task
 from machine import Pin
 import time
+import shared
+
 
 # ==== Button check at startup ====
-btn_y = Pin(2, Pin.IN, Pin.PULL_UP)
+# btn_y = Pin(2, Pin.IN, Pin.PULL_UP)
 
 # If button Y is pressed at startup, halt program
-if not btn_y.value():  # active LOW
+if not display_task.btn_y.value():  # active LOW
     # Optional: show a message on the display
-    import display_task
     WIDTH, HEIGHT = display_task.display.get_bounds()
     display_task.display.set_pen(display_task.BLACK)
     display_task.display.clear()
@@ -22,11 +23,47 @@ if not btn_y.value():  # active LOW
         display_task.display.text(line, 10, y0 + i * 16, WIDTH, scale=2)
     display_task.display.update()
 
+elif not display_task.btn_b.value() and not display_task.btn_a.value():  # active LOW
+    WIDTH, HEIGHT = display_task.display.get_bounds()
+
+    # ---- Display setup ----
+    display_task.display.set_pen(display_task.BLACK)
+    display_task.display.clear()
+    display_task.display.set_pen(display_task.WHITE)
+    display_task.display.update()
+
+    y0 = 10
+    line_h = 16  # vertical spacing per line
+
+    # ---- Step 1 + 2: Wi-Fi + MQTT ----
+    display_task.draw_line(y0, line_h, "Checking network...")
+
+    network_ok = False
+    start = time.ticks_ms()
+    timeout = 5000  # 5 seconds max to connect
+
+    while time.ticks_diff(time.ticks_ms(), start) < timeout:
+        if data_task.net.ensure_connected():
+            network_ok = True
+            break
+        time.sleep(0.05)
+
+    if network_ok:
+        ip = data_task.net.wlan.ifconfig()[0]
+        display_task.draw_line(y0, line_h, f"Wi-Fi connected, IP: {ip}")
+        if data_task.net.mqtt:
+            display_task.draw_line(y0 + line_h, line_h, f"MQTT broker connected: {data_task.net.mqtt_broker}")
+        else:
+            display_task.draw_line(y0 + line_h, line_h, "MQTT broker NOT connected")
+    else:
+        display_task.draw_line(y0, line_h, "Network NOT connected (Wi-Fi/MQTT)")
+
+    # ---- Step 3: Clear discovery ----
+    clear_y = y0 + line_h * 3
+    cleared = data_task.clear_mqtt_discovery(data_task.net, shared.channel_label)
+    display_task.draw_line(clear_y, line_h, f"Discovery topics cleared: {cleared}")
 
 
-
-
-    
 else:
 
     # Start display/UI on core 1

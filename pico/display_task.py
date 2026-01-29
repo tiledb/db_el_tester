@@ -22,6 +22,16 @@ display.set_palette([
     (100, 100, 100),  # 5 grid lines
 ])
 
+def draw_line(y, line_h, text):
+    """Clear line first to avoid overlapping text, then draw"""
+    display.set_pen(BLACK)
+    display.rectangle(0, y, WIDTH, line_h)
+    display.set_pen(WHITE)
+    display.text(text, 10, y, WIDTH, scale=2)
+    display.update()
+    # print("[DISPLAY]", text)
+
+
 BLACK, WHITE, GREEN, YELLOW, RED, GRID = range(6)
 
 # ==== Buttons ====
