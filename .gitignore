@@ -10,3 +10,7 @@ vivado_logs/*
 
 # Ignore system files
 .DS_Store
+
+upython/micropython
+upython/pimoroni-pico
+upython/.*
