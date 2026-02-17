@@ -1,7 +1,7 @@
 BOARD_NAME = "db_tester"
-# BOARD_ID = "lbt-mb2"
+# BOARD_ID = "lbt-md2"
 # BOARD_ID = "t01"
-BOARD_ID = "lbt-mb1"
+BOARD_ID = "lbt-md3"
 MQTT_BASE = f"atlas.net/{BOARD_NAME}/{BOARD_ID}"
 DISCOVERY_PREFIX = "atlas.net"  # matches HA discovery prefix
 
@@ -14,5 +14,5 @@ MQTT_PORT = 1883
 MQTT_USER = "tiledb"
 MQTT_PASS = "T1le-db-word!"
 
-MQTT_BASE_TOPIC = "atlas.net/db_tester/{BOARD_ID}"
+MQTT_BASE_TOPIC = f"atlas.net/db_tester/{BOARD_ID}"
 # 

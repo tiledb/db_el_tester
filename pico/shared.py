@@ -83,3 +83,7 @@ channel_label = ["dba_1v2", "dba_5v0", "dba_1v5", "dba_3v3", "dba_pg2", "dba_pg3
 
 
 data_lock = _thread.allocate_lock()
+
+# ==== Network / MQTT status (for display) ====
+wifi_connected = False
+mqtt_last_ok = False

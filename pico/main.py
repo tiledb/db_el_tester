@@ -51,6 +51,11 @@ elif not display_task.btn_b.value() and not display_task.btn_a.value():  # activ
 
     ip = data_task.net.wlan.ifconfig()[0]
     display_task.draw_line(y0, line_h, f"Wi-Fi connected, IP: {ip}")
+    
+    shared.data_lock.acquire()
+    shared.wifi_connected = True
+    shared.data_lock.release()
+    
     if data_task.net.mqtt:
         display_task.draw_line(y0 + line_h, line_h, f"MQTT broker connected: {data_task.net.mqtt_broker}")
     else:
@@ -66,6 +71,14 @@ else:
 
     # Start display/UI on core 1
     _thread.start_new_thread(display_task.run, ())
+    if data_task.net.mqtt:
+        shared.data_lock.acquire()
+        shared.mqtt_last_ok = True
+        shared.data_lock.release()
+    else:
+        shared.data_lock.acquire()
+        shared.mqtt_last_ok = False
+        shared.data_lock.release()
 
     # Run data acquisition on core 0 (main thread)
     data_task.run()
