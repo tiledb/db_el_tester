@@ -1,0 +1,1 @@
+cp ../upython/pimoroni-build.uf2 /media/tiledb/RPI-RP2

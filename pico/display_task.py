@@ -2,6 +2,7 @@ from machine import Pin, PWM, reset
 from picographics import PicoGraphics, DISPLAY_PICO_DISPLAY_2, PEN_P8
 import time
 import shared
+from secrets import BOARD_ID
 
 # ==== Display setup ====
 display = PicoGraphics(
@@ -19,7 +20,8 @@ display.set_palette([
     (0, 255, 0),      # 2 green (OK)
     (255, 255, 0),    # 3 yellow (labels)
     (255, 0, 0),      # 4 red (ALARM)
-    (100, 100, 100),  # 5 grid lines
+    (100, 150, 100),  # 5 grid lines
+    (255, 0, 255),    # 6 magenta
 ])
 
 def draw_line(y, line_h, text):
@@ -32,7 +34,7 @@ def draw_line(y, line_h, text):
     # print("[DISPLAY]", text)
 
 
-BLACK, WHITE, GREEN, YELLOW, RED, GRID = range(6)
+BLACK, WHITE, GREEN, YELLOW, RED, GRID, MAGENTA = range(7)
 
 # ==== Buttons ====
 btn_a = Pin(5, Pin.IN, Pin.PULL_UP)
@@ -81,8 +83,12 @@ def draw_frame():
 
     # ---- Headers ----
     display.set_pen(WHITE)
-    display.text("DB Side A", LEFT_X + 10, 4, MID_X, scale=2)
-    display.text("DB Side B", RIGHT_X + 10, 4, MID_X, scale=2)
+    display.text("DB-A", LEFT_X + 10, 4, MID_X, scale=2)
+    display.text("DB-B", RIGHT_X + 10, 4, MID_X, scale=2)
+    
+    display.set_pen(MAGENTA)
+    display.text("<"+BOARD_ID+">", LEFT_X + 80, 4, MID_X, scale=2)
+    display.text("<"+BOARD_ID+">", RIGHT_X + 80, 4, MID_X, scale=2)
 
     # ---- Copy shared data safely ----
     shared.data_lock.acquire()

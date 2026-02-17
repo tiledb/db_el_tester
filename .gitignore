@@ -1,5 +1,12 @@
-upython/micropython
-upython/pimoroni-pico
-upython/.*
+# Ignore Python virtual environment
+.pyenv
+*.pyc
+__pycache__/
+tcl/*
+tmp/*
+vivado_logs/*
+# Ignore logs
+*.log
 
-.vscode
+# Ignore system files
+.DS_Store
