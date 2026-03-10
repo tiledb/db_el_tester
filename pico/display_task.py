@@ -180,7 +180,7 @@ def draw_frame():
         display.set_pen(YELLOW)
         display.text(label_a, LEFT_X, y, MID_X, scale=TEXT_SCALE)
 
-        pen = GREEN if vmin[i] <= values[i] <= vmax[i] else RED
+        pen = shared.channel_ok_color[i] if vmin[i] <= values[i] <= vmax[i] else shared.channel_alarm_color[i]
         display.set_pen(pen)
         display.text(f"{values[i]:.3f}",
                      LEFT_X + VALUE_OFFSET, y,
@@ -192,7 +192,7 @@ def draw_frame():
         display.set_pen(YELLOW)
         display.text(label_b, RIGHT_X, y, MID_X, scale=TEXT_SCALE)
 
-        pen = GREEN if vmin[j] <= values[j] <= vmax[j] else RED
+        pen = shared.channel_ok_color[j] if vmin[j] <= values[j] <= vmax[j] else shared.channel_alarm_color[j]
         display.set_pen(pen)
         display.text(f"{values[j]:.3f}",
                      RIGHT_X + VALUE_OFFSET, y,

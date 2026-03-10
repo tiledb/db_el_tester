@@ -9,15 +9,19 @@ import ujson
 import display_task
 
 
-net = NetManager(
-    wifi_ssid=secrets.WIFI_SSID,
-    wifi_pass=secrets.WIFI_PASS,
-    mqtt_broker=secrets.MQTT_BROKER,
-    mqtt_user=secrets.MQTT_USER,
-    mqtt_pass=secrets.MQTT_PASS,
-    mqtt_port=secrets.MQTT_PORT,
-    base_topic=secrets.MQTT_BASE_TOPIC
-)
+if shared.WIFI_ENABLED:
+    net = NetManager(
+        wifi_ssid=secrets.WIFI_SSID,
+        wifi_pass=secrets.WIFI_PASS,
+        mqtt_broker=secrets.MQTT_BROKER,
+        mqtt_user=secrets.MQTT_USER,
+        mqtt_pass=secrets.MQTT_PASS,
+        mqtt_port=secrets.MQTT_PORT,
+        base_topic=secrets.MQTT_BASE_TOPIC
+    )
+else:
+    net = None
+
 
 def _safe_id(s):
     return (
@@ -191,7 +195,6 @@ def run():
     discovery_sent = False
     last_mqtt = time.ticks_ms()
     
-    last_mqtt = time.ticks_ms()
     while True:
         # ---- Local working buffers (NO LOCK) ----
         local_adc = [0] * shared.nr_of_channels
@@ -242,22 +245,26 @@ def run():
 
         nprint(row_adc)
         nprint(row_v)
+        
+        if shared.WIFI_ENABLED:
+            wifi_ok = net.ensure_connected()
+        else:
+            wifi_ok = False
 
-        wifi_ok = net.ensure_connected()
-
+        
         # ---- Update WiFi status ----
         shared.data_lock.acquire()
         shared.wifi_connected = wifi_ok
         shared.data_lock.release()
 
-        if wifi_ok:
+        if shared.WIFI_ENABLED and wifi_ok:
             if not discovery_sent:
                 send_discovery(net, shared.channel_label)
                 discovery_sent = True
 
         if time.ticks_diff(time.ticks_ms(), last_mqtt) > 1000:
             last_mqtt = time.ticks_ms()
-
+            # print("-- MQTT Publish --")
             shared.data_lock.acquire()
             values = shared.output_adc_value_v[:]
             # Check for test mode
@@ -270,30 +277,31 @@ def run():
 
             labels = shared.channel_label[:]
             shared.data_lock.release()
+            
+            if shared.WIFI_ENABLED:
+                for i, label in enumerate(labels):
+                    value = values[i]
+                    topic = f"{label}"
+                    alarm_topic = f"{label}/alarm"
 
-            for i, label in enumerate(labels):
-                value = values[i]
-                topic = f"{label}"
-                alarm_topic = f"{label}/alarm"
+                    try:
+                        if wifi_ok:
+                            net.publish(topic.encode(), b"%.3f" % value)
+                            net.publish(
+                                alarm_topic.encode(),
+                                b"ON" if value < vmin[i] or value > vmax[i] else b"OFF")
+                            mqtt_ok = True
+                        else:
+                            mqtt_ok = False
 
-                try:
-                    if wifi_ok:
-                        net.publish(topic.encode(), b"%.3f" % value)
-                        net.publish(
-                            alarm_topic.encode(),
-                            b"ON" if value < vmin[i] or value > vmax[i] else b"OFF")
-                        mqtt_ok = True
-                    else:
+                    except Exception as e:
                         mqtt_ok = False
-
-                except Exception as e:
-                    mqtt_ok = False
-                    break
+                        break
 
             # ---- Update MQTT status ----
-            shared.data_lock.acquire()
-            shared.mqtt_last_ok = mqtt_ok
-            shared.data_lock.release()
+                shared.data_lock.acquire()
+                shared.mqtt_last_ok = mqtt_ok
+                shared.data_lock.release()
 
         time.sleep(0.5)
 

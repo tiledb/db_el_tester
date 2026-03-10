@@ -1,7 +1,7 @@
 BOARD_NAME = "db_tester"
-# BOARD_ID = "lbt-md2"
+# BOARD_ID = "lbt-mb2"
 # BOARD_ID = "t01"
-BOARD_ID = "lbt-md3"
+BOARD_ID = "t02"
 MQTT_BASE = f"atlas.net/{BOARD_NAME}/{BOARD_ID}"
 DISCOVERY_PREFIX = "atlas.net"  # matches HA discovery prefix
 

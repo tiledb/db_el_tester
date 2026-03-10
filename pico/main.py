@@ -6,6 +6,8 @@ import time
 import shared
 
 
+
+
 # ==== Button check at startup ====
 # btn_y = Pin(2, Pin.IN, Pin.PULL_UP)
 
@@ -36,13 +38,19 @@ elif not display_task.btn_b.value() and not display_task.btn_a.value():  # activ
     line_h = 16  # vertical spacing per line
 
     # ---- Step 1 + 2: Wi-Fi + MQTT ----
-    display_task.draw_line(y0, line_h, "Checking network...")
+    if not shared.WIFI_ENABLED:
+        display_task.draw_line(y0, line_h, "WiFi disabled")
+        exit(0)
+    else:
+        display_task.draw_line(y0, line_h, "Checking network...")
 
     network_ok = False
     start = time.ticks_ms()
     timeout = 5000  # 5 seconds max to connect
 
-    while not data_task.net.ensure_connected():
+
+    
+    while shared.WIFI_ENABLED and not data_task.net.ensure_connected():
         retry_count += 1
         display_task.draw_line(y0, line_h, f"Waiting for network... Retry: {retry_count}")
         print(f"[INFO] Waiting for network, retry #{retry_count}")
@@ -71,7 +79,7 @@ else:
 
     # Start display/UI on core 1
     _thread.start_new_thread(display_task.run, ())
-    if data_task.net.mqtt:
+    if shared.WIFI_ENABLED and data_task.net.mqtt:
         shared.data_lock.acquire()
         shared.mqtt_last_ok = True
         shared.data_lock.release()

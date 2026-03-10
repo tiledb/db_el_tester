@@ -1,12 +1,19 @@
 import _thread
 
+# =========================================================
+# WIFI / MQTT MASTER ENABLE
+# =========================================================
+WIFI_ENABLED = False
+
 test_mode = False
 
 cprint_enabled = False
 nprint_enabled = False
 delimiter_line = "=========="
 
+frikab_mode = True
 
+BLACK, WHITE, GREEN, YELLOW, RED, GRID, MAGENTA = range(7)
 
 nr_of_channels = 26
 mux_ch = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 , # 13, 14, 15,
@@ -30,15 +37,25 @@ output_adc_value_v = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, # 0, 0, 0,
                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 #, 0, 0, 0
                         ]
 
+output_adc_value_min=[]
 
-output_adc_value_min = [1.1, 4.9, 1.4, 3.2, 1., 1., 1., 1., 4.9, 2.4, 1.7, 0.9, 0.8,
-                        1.1, 4.9, 1.4, 3.2, 1., 1., 1., 1., 4.9, 2.4, 1.7, 0.9, 0.8
-                        ]
+if frikab_mode:
+  output_adc_value_min = [1.1, 0., 1.4, 3.2, 1., 0., 1., 1., 4.9, 2.4, 1.7, 0.9, 0.8,
+                          1.1, 0., 1.4, 3.2, 1., 0., 1., 1., 4.9, 2.4, 1.7, 0.9, 0.8
+                          ]
 
-output_adc_value_max = [1.3, 5.1, 1.6, 3.4, 5.1, 5.1, 5.1, 5.1, 5.1, 2.6, 1.9, 1.1, 1.,
-                        1.3, 5.1, 1.6, 3.4, 5.1, 5.1, 5.1, 5.1, 5.1, 2.6, 1.9, 1.1, 1.,
-                        ]
+  output_adc_value_max = [1.3, 6., 1.6, 3.4, 5.1, 6., 5.1, 5.1, 5.1, 2.6, 1.9, 1.1, 1.,
+                          1.3, 6., 1.6, 3.4, 5.1, 6., 5.1, 5.1, 5.1, 2.6, 1.9, 1.1, 1.,
+                          ]
+else:
 
+  output_adc_value_min = [1.1, 4.9, 1.4, 3.2, 1., 1., 1., 1., 4.9, 2.4, 1.7, 0.9, 0.8,
+                          1.1, 4.9, 1.4, 3.2, 1., 1., 1., 1., 4.9, 2.4, 1.7, 0.9, 0.8
+                          ]
+
+  output_adc_value_max = [1.3, 5.1, 1.6, 3.4, 5.1, 5.1, 5.1, 5.1, 5.1, 2.6, 1.9, 1.1, 1.,
+                          1.3, 5.1, 1.6, 3.4, 5.1, 5.1, 5.1, 5.1, 5.1, 2.6, 1.9, 1.1, 1.,
+                          ]
 
 
 output_adc_value_min_test = [-0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5,
@@ -75,6 +92,21 @@ channel_label = ["dba_1v2", "dba_5v0", "dba_1v5", "dba_3v3", "dba_pg2", "dba_pg3
                 ]
 
 
+channel_label = ["dba_1v2", "dba_5v0", "dba_1v5", "dba_3v3", "dba_pg2", "dba_pg3", "dba_pg4", "dba_pg1", "dba_5v0p", "dba_2v5", "dba_1v8", "dba_1v0",  "dba_0v95",
+                "dbb_1v2", "dbb_5v0", "dbb_1v5", "dbb_3v3", "dbb_pg2", "dbb_pg3", "dbb_pg4", "dbb_pg1", "dbb_5v0p", "dbb_2v5", "dbb_1v8", "dbb_1v0",  "dbb_0v95"
+                ]
+
+
+channel_ok_color = []
+if frikab_mode:
+  channel_ok_color = [GREEN, MAGENTA, GREEN, GREEN, GREEN, MAGENTA, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN,
+                      GREEN, MAGENTA, GREEN, GREEN, GREEN, MAGENTA, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN]
+else:
+  channel_ok_color = [GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN,
+                      GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN]
+
+channel_alarm_color = [RED, RED, RED, RED, RED, RED, RED, RED, RED, RED, RED, RED, RED,
+                    RED, RED, RED, RED, RED, RED, RED, RED, RED, RED, RED, RED, RED]
 
 
 
